@@ -695,33 +695,6 @@ $$ LANGUAGE plpgsql;
 --|--- ######################### VERIFICAR_SE_MODULOS_FICAM_ACESSIVEIS ######################### ---|----------------------------------------------------------------
 --|-------------------------------------------------------------------------------------------------|--
 
-/*
-CREATE FUNCTION VERIFICAR_SE_MODULOS_FICAM_ACESSIVEIS()
-RETURNS VOID
-AS $$
-DECLARE
-	COD_MODULO_ANALISADO_1 RECORD;
-	COD_MODULO_ANALISADO_2 RECORD;
-
-	MODULO_FICAR_ACESSIVEL BOOLEAN;
-BEGIN
-	FOR COD_MODULO_ANALISADO_1 IN (SELECT DISTINCT A_M.COD_ALUNO_MODULO, P_R.COD_MODULO
-	    FROM ALUNO_MODULO A_M INNER JOIN PRE_REQUISITO P_R ON A_M.COD_MODULO = P_R.COD_MODULO_PRE_REQUISITO) LOOP
-		MODULO_FICAR_ACESSIVEL := TRUE;
-		FOR COD_MODULO_ANALISADO_2 IN (SELECT P_R.COD_MODULO_PRE_REQUISITO FROM PRE_REQUISITO P_R WHERE P_R.COD_MODULO = COD_MODULO_ANALISADO_1.COD_MODULO) LOOP
-			IF COD_MODULO_ANALISADO_2.META_CONCLUIDA IS FALSE THEN
-				MODULO_FICAR_ACESSIVEL := FALSE;
-			END IF;
-		END LOOP;
-		
-		IF MODULO_FICAR_ACESSIVEL IS TRUE THEN
-			UPDATE ALUNO_MODULO SET ACESSIVEL = TRUE WHERE COD_ALUNO_MODULO = COD_MODULO_ANALISADO_1.COD_ALUNO_MODULO;
-		END IF;
-	END LOOP;
-END
-$$ LANGUAGE plpgsql;
-*/
-
 CREATE FUNCTION VERIFICAR_SE_MODULOS_FICAM_ACESSIVEIS(COD_MODULO_ALUNO_MODULO INT)
 RETURNS VOID
 AS $$
@@ -751,7 +724,6 @@ BEGIN
 	END LOOP;
 END
 $$ LANGUAGE plpgsql;
-
 
 --|-------------------------------------------------------------------------------------------------|--
 --|--- ########################### VERIFICAR_VALIDADE_PRE_REQUISITO ############################ ---|----------------------------------------------------------------
@@ -1660,10 +1632,10 @@ END
 $$ LANGUAGE plpgsql;
 
 --|------------------------------------------------------------------------------------------|---
---|--- ########################## EVENTO_INSERT_PRE_REQUISITO ########################### ---|-----------------------------------------------------------------------
+--|--- ####################### EVENTO_INSERT_UPDATE_PRE_REQUISITO ####################### ---|-----------------------------------------------------------------------
 --|------------------------------------------------------------------------------------------|---
 
-CREATE OR REPLACE FUNCTION EVENTO_INSERT_PRE_REQUISITO()
+CREATE OR REPLACE FUNCTION EVENTO_INSERT_UPDATE_PRE_REQUISITO()
 RETURNS TRIGGER
 AS $$
 BEGIN
@@ -1848,10 +1820,11 @@ EXECUTE PROCEDURE ATIVACAO_PRE_REQUISITO();
 --|------------------------------------------------------------------------------------------|---
 
 CREATE TRIGGER TRIGGER_PRE_REQUISITO
-BEFORE INSERT
+BEFORE INSERT OR UPDATE
 ON PRE_REQUISITO FOR EACH ROW
-EXECUTE PROCEDURE EVENTO_INSERT_PRE_REQUISITO();
+EXECUTE PROCEDURE EVENTO_INSERT_UPDATE_PRE_REQUISITO();
 
+-- DROP TRIGGER TRIGGER_PRE_REQUISITO ON PRE_REQUISITO
 
 
 --*****************************************************************************************************************************************************************--
