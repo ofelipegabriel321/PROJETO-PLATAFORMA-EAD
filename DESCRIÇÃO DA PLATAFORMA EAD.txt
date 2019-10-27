@@ -1,4 +1,4 @@
--- (AINDA NÃO ESTÁ COMPLETAMENTE ORGANIZADO) --
+-- (AINDA Nï¿½O ESTï¿½ COMPLETAMENTE ORGANIZADO) --
 
 
 **********************************
@@ -13,7 +13,7 @@
 
 **********************************
 **********************************
-****** CRIAÇÃO DAS TABELAS *******
+****** CRIAï¿½ï¿½O DAS TABELAS *******
 **********************************
 **********************************
 
@@ -45,14 +45,14 @@
 ##################### AUXILIARES #####################
 
 >> CALCULAR_DATA_PAGAMENTO_ATUAL
->> VERIFICAR_SE_REGISTRO_EXISTE             ### PADRÃO
+>> VERIFICAR_SE_REGISTRO_EXISTE             ### PADRï¿½O
 >> ALUNO_AINDA_CURSANDO
 >> CURSO_DISPONIVEL
 >> ALUNO_JA_CURSOU
->> USUARIO_EXISTENTE                    #PÔR NO PADRÃO
->> CURSO_EXISTE                         #PÔR NO PADRÃO
->> MODULO_EXISTE                        #PÔR NO PADRÃO
->> DISCIPLINA_EXISTENTE                 #PÔR NO PADRÃO
+>> USUARIO_EXISTENTE                    #Pï¿½R NO PADRï¿½O
+>> CURSO_EXISTE                         #Pï¿½R NO PADRï¿½O
+>> MODULO_EXISTE                        #Pï¿½R NO PADRï¿½O
+>> DISCIPLINA_EXISTENTE                 #Pï¿½R NO PADRï¿½O
 >> ALUNO_JA_ASSISTIU
 >> VERIFICAR_VINCULO_QUESTAO_QUESTIONARIO
 >> VERIFICAR_VINCULO_QUESTAO_ALUNO
@@ -63,7 +63,7 @@
 
 
 >> RETORNA_IDADE
->> EMAIL_USUARIO_EXISTENTE              #PÔR NO PADRÃO
+>> EMAIL_USUARIO_EXISTENTE              #Pï¿½R NO PADRï¿½O
 >> RETORNA_COD_PROFESSOR
 >> STATUS_ALUNO_MODULO
 >> MODULO_STATUS_ALUNO
@@ -80,10 +80,10 @@
 >> VERIFICAR_VALIDADE_PRE_REQUISITO
 >> VERIFICAR_SE_MODULOS_FICAM_ACESSIVEIS
 ++ LISTAR CURSOS
-++ LISTAR MÓDULOS
+++ LISTAR Mï¿½DULOS
 ++ LISTAR DISCIPLINAS
 ++ LISTAR VIDEOAULAS
-++ LISTAR QUESTIONÁRIOS
+++ LISTAR QUESTIONï¿½RIOS
 
 
 
@@ -93,61 +93,117 @@
 >> INSERIR_ALUNO_E_PROFESSOR
 
 --------ALUNO # PROFESSOR------------------------------
-++ **REMOVER_ALUNO_E_PROFESSOR
->> **ATUALIZAR_SALDO
->> **CONSULTAR_SALDO
->> **SACAR_SALDO
+++ REMOVER_ALUNO_E_PROFESSOR
+>> ATUALIZAR_SALDO
+>> CONSULTAR_SALDO
+>> SACAR_SALDO
 
 --------PROFESSOR--------------------------------------
->> **RECEBER_SALARIO
+>> RECEBER_SALARIO
 
 --------CURSO # ALUNO # ALUNO_CURSO--------------------
->> **COMPRAR_CURSO
+>> COMPRAR_CURSO
 
 --------CURSO # PROFESSOR------------------------------
->> **CRIAR_CURSO
-++ **DELETAR CURSO
->> **PUBLICAR_CURSO
+>> CRIAR_CURSO
+++ DELETAR CURSO
+>> PUBLICAR_CURSO
 
 --------MODULO # PROFESSOR-----------------------------
->> **CRIAR_MODULO
->> **DELETAR_MODULO
+>> CRIAR_MODULO
+>> DELETAR_MODULO
 
 --------PRE_REQUISITO # PROFESSOR----------------------
-
+++ CRIAR_PRE_REQUISITO
 
 --------DISCIPLINA # PROFESSOR-------------------------
->> **CRIAR_DISCIPLINAS
->> **DELETAR_DISCIPLINA
+>> CRIAR_DISCIPLINAS
+>> DELETAR_DISCIPLINA
 
 --------VIDEO_AULA # PROFESSOR-------------------------
->> **ADICIONAR_VIDEO_AULA
->> **DELETAR_VIDEO
+>> ADICIONAR_VIDEO_AULA
+>> DELETAR_VIDEO
 
 --------ALUNO_VIDEOS_ASSISTIDOS------------------------
->> **ASSISTIR_VIDEO                    ### NOME MUDADO
+>> ASSISTIR_VIDEO                    ### NOME MUDADO
 
 
 --------QUESTAO # PROFESSOR----------------------------
->> **CRIAR_QUESTAO
->> **DELETAR_QUESTAO
->> **LISTAR_QUESTOES_DOS_ALUNOS
->> **CORRIGIR_QUESTAO
+>> CRIAR_QUESTAO
+>> DELETAR_QUESTAO
+>> LISTAR_QUESTOES_DOS_ALUNOS
+>> CORRIGIR_QUESTAO
 
 
 --------QUESTIONARIO # PROFESSOR-----------------------------------
->> **CRIAR_QUESTIONARIO
->> **DELETAR_QUESTIONARIO
+>> CRIAR_QUESTIONARIO
+>> DELETAR_QUESTIONARIO
 
 --------QUESTAO_QUESTIONARIO # PROFESSOR---------------------------
->> **VINCULAR_QUESTAO_A_QUESTIONARIO
+>> VINCULAR_QUESTAO_A_QUESTIONARIO
 
 --------QUESTAO # ALUNO--------------------------------
->> **SUBMETER_RESPOSTA_DE_QUESTAO
+>> SUBMETER_RESPOSTA_DE_QUESTAO
 
 
-################ FUNCTIONS DE USUÁRIOS ################
+################ FUNCTIONS DE USUï¿½RIOS ################
 
+--------ALUNO # PROFESSOR------------------------------
+++ ALUNO_ATUALIZAR_SALDO
+++ PROFESSOR_ATUALIZAR_SALDO
+
+++ ALUNO_CONSULTAR_SALDO
+++ PROFESSOR_CONSULTAR_SALDO
+
+++ ALUNO_SACAR_SALDO
+++ PROFESSOR_SACAR_SALDO
+
+--------PROFESSOR--------------------------------------
+++ PROFESSOR_RECEBER_SALARIO
+
+--------CURSO # ALUNO # ALUNO_CURSO--------------------
+++ ALUNO_COMPRAR_CURSO
+
+--------CURSO # PROFESSOR------------------------------
+++ PROFESSOR_CRIAR_CURSO
+++ PROFESSOR_DELETAR CURSO
+++ PROFESSOR_PUBLICAR_CURSO
+
+--------MODULO # PROFESSOR-----------------------------
+++ PROFESSOR_CRIAR_MODULO
+++ PROFESSOR_DELETAR_MODULO
+
+--------PRE_REQUISITO # PROFESSOR----------------------
+++ PROFESSOR_CRIAR_PRE_REQUISITO
+
+--------DISCIPLINA # PROFESSOR-------------------------
+++ PROFESSOR_CRIAR_DISCIPLINAS
+++ PROFESSOR_DELETAR_DISCIPLINA
+
+--------VIDEO_AULA # PROFESSOR-------------------------
+++ PROFESSOR_ADICIONAR_VIDEO_AULA
+++ PROFESSOR_DELETAR_VIDEO
+
+--------ALUNO_VIDEOS_ASSISTIDOS------------------------
+++ ALUNO_ASSISTIR_VIDEO
+
+
+--------QUESTAO # PROFESSOR----------------------------
+++ PROFESSOR_CRIAR_QUESTAO
+++ PROFESSOR_DELETAR_QUESTAO
+++ PROFESSOR_LISTAR_QUESTOES_DOS_ALUNOS
+++ PROFESSOR_CORRIGIR_QUESTAO
+
+
+--------QUESTIONARIO # PROFESSOR-----------------------------------
+++ PROFESSOR_CRIAR_QUESTIONARIO
+++ PROFESSOR_DELETAR_QUESTIONARIO
+
+--------QUESTAO_QUESTIONARIO # PROFESSOR---------------------------
+++ PROFESSOR_VINCULAR_QUESTAO_A_QUESTIONARIO
+
+--------QUESTAO # ALUNO--------------------------------
+++ ALUNO_SUBMETER_RESPOSTA_DE_QUESTAO
 
 
 ################ FUNCTIONS DE TRIGGER #################
