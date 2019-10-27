@@ -106,7 +106,7 @@
 
 --------CURSO # PROFESSOR------------------------------
 >> CRIAR_CURSO
-++ DELETAR CURSO
+>> DELETAR CURSO
 >> PUBLICAR_CURSO
 
 --------MODULO # PROFESSOR-----------------------------
@@ -114,7 +114,7 @@
 >> DELETAR_MODULO
 
 --------PRE_REQUISITO # PROFESSOR----------------------
-++ CRIAR_PRE_REQUISITO
+>> CRIAR_PRE_REQUISITO
 
 --------DISCIPLINA # PROFESSOR-------------------------
 >> CRIAR_DISCIPLINAS
@@ -135,11 +135,11 @@
 >> CORRIGIR_QUESTAO
 
 
---------QUESTIONARIO # PROFESSOR-----------------------------------
+--------QUESTIONARIO # PROFESSOR-----------------------
 >> CRIAR_QUESTIONARIO
 >> DELETAR_QUESTIONARIO
 
---------QUESTAO_QUESTIONARIO # PROFESSOR---------------------------
+--------QUESTAO_QUESTIONARIO # PROFESSOR---------------
 >> VINCULAR_QUESTAO_A_QUESTIONARIO
 
 --------QUESTAO # ALUNO--------------------------------
