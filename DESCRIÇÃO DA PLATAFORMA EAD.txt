@@ -1,4 +1,4 @@
--- (AINDA N�O EST� COMPLETAMENTE ORGANIZADO) --
+-- (AINDA NÃO ESTÁ COMPLETAMENTE ORGANIZADO) --
 
 
 **********************************
@@ -13,7 +13,7 @@
 
 **********************************
 **********************************
-****** CRIA��O DAS TABELAS *******
+****** CRIAÇÃO DAS TABELAS *******
 **********************************
 **********************************
 
@@ -45,14 +45,14 @@
 ##################### AUXILIARES #####################
 
 >> CALCULAR_DATA_PAGAMENTO_ATUAL
->> VERIFICAR_SE_REGISTRO_EXISTE             ### PADR�O
+>> VERIFICAR_SE_REGISTRO_EXISTE             ### PADRÃO
 >> ALUNO_AINDA_CURSANDO
 >> CURSO_DISPONIVEL
 >> ALUNO_JA_CURSOU
->> USUARIO_EXISTENTE                    #P�R NO PADR�O
->> CURSO_EXISTE                         #P�R NO PADR�O
->> MODULO_EXISTE                        #P�R NO PADR�O
->> DISCIPLINA_EXISTENTE                 #P�R NO PADR�O
+>> USUARIO_EXISTENTE                    #PÔR NO PADRÃO
+>> CURSO_EXISTE                         #PÔR NO PADRÃO
+>> MODULO_EXISTE                        #PÔR NO PADRÃO
+>> DISCIPLINA_EXISTENTE                 #PÔR NO PADRÃO
 >> ALUNO_JA_ASSISTIU
 >> VERIFICAR_VINCULO_QUESTAO_QUESTIONARIO
 >> VERIFICAR_VINCULO_QUESTAO_ALUNO
@@ -63,7 +63,7 @@
 
 
 >> RETORNA_IDADE
->> EMAIL_USUARIO_EXISTENTE              #P�R NO PADR�O
+>> EMAIL_USUARIO_EXISTENTE              #PÔR NO PADRÃO
 >> RETORNA_COD_PROFESSOR
 >> STATUS_ALUNO_MODULO
 >> MODULO_STATUS_ALUNO
@@ -79,11 +79,11 @@
 >> VALIDAR_CURSO
 >> VERIFICAR_VALIDADE_PRE_REQUISITO
 >> VERIFICAR_SE_MODULOS_FICAM_ACESSIVEIS
-++ LISTAR CURSOS
-++ LISTAR M�DULOS
-++ LISTAR DISCIPLINAS
-++ LISTAR VIDEOAULAS
-++ LISTAR QUESTION�RIOS
+++ LISTAR_CURSOS
+++ LISTAR_MODULOS
+++ LISTAR_DISCIPLINAS
+++ LISTAR_VIDEOAULAS
+++ LISTAR_QUESTIONARIOS
 
 
 
@@ -91,11 +91,11 @@
 
 -------------------------------------------------------
 >> INSERIR_ALUNO_E_PROFESSOR
+>> REMOVER_ALUNO_E_PROFESSOR
 
 --------ALUNO # PROFESSOR------------------------------
-++ REMOVER_ALUNO_E_PROFESSOR
->> ATUALIZAR_SALDO
 >> CONSULTAR_SALDO
+>> ATUALIZAR_SALDO
 >> SACAR_SALDO
 
 --------PROFESSOR--------------------------------------
@@ -125,7 +125,7 @@
 >> DELETAR_VIDEO
 
 --------ALUNO_VIDEOS_ASSISTIDOS------------------------
->> ASSISTIR_VIDEO                    ### NOME MUDADO
+>> ASSISTIR_VIDEO
 
 
 --------QUESTAO # PROFESSOR----------------------------
@@ -146,14 +146,14 @@
 >> SUBMETER_RESPOSTA_DE_QUESTAO
 
 
-################ FUNCTIONS DE USU�RIOS ################
+################ FUNCTIONS DE USUÁRIOS ################
 
 --------ALUNO # PROFESSOR------------------------------
-++ ALUNO_ATUALIZAR_SALDO
-++ PROFESSOR_ATUALIZAR_SALDO
-
 ++ ALUNO_CONSULTAR_SALDO
 ++ PROFESSOR_CONSULTAR_SALDO
+
+++ ALUNO_ATUALIZAR_SALDO
+++ PROFESSOR_ATUALIZAR_SALDO
 
 ++ ALUNO_SACAR_SALDO
 ++ PROFESSOR_SACAR_SALDO
@@ -209,6 +209,7 @@
 ################ FUNCTIONS DE TRIGGER #################
 
 >> VERIFICA_INSERCAO
+>> VERIFICA_DELECAO
 >> EVENTO_RECEBER_SALARIO
 >> EVENTO_MODULO_CURSO
 >> EVENTOS_ALUNO_CURSO
@@ -228,6 +229,7 @@
 
   ----------- ALUNO ------------
 >> EVENTOS_DE_INSERCAO_ALUNO
+>> EVENTOS_DE_DELECAO_ALUNO
 
   --------- PROFESSOR ----------
 >> EVENTOS_DE_INSERCAO_PROFESSOR

@@ -770,13 +770,32 @@ CREATE OR REPLACE FUNCTION INSERIR_ALUNO_E_PROFESSOR(COD_USUARIO INT, NOME TEXT,
 RETURNS VOID
 AS $$
 BEGIN
-    IF TABELA = 'ALUNO' THEN
-        INSERT INTO ALUNO VALUES (COD_USUARIO, NOME, CPF, DATA_NASCIMENTO, EMAIL, SENHA, DEFAULT);
-    END IF;
+	IF TABELA = 'ALUNO' THEN
+		INSERT INTO ALUNO VALUES (COD_USUARIO, NOME, CPF, DATA_NASCIMENTO, EMAIL, SENHA, DEFAULT);
+	END IF;
  
-    IF TABELA = 'PROFESSOR' THEN
-        INSERT INTO PROFESSOR VALUES (COD_USUARIO, NOME, CPF, DATA_NASCIMENTO, EMAIL, SENHA, DEFAULT, DEFAULT);
-    END IF;
+	IF TABELA = 'PROFESSOR' THEN
+		INSERT INTO PROFESSOR VALUES (COD_USUARIO, NOME, CPF, DATA_NASCIMENTO, EMAIL, SENHA, DEFAULT, DEFAULT);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|---------------------------------------------------------------------------------------|--
+--|--- ########################## REMOVER_ALUNO_E_PROFESSOR ########################## ---|--------------------------------------------------------------------------
+--|---------------------------------------------------------------------------------------|--
+
+/* REMOVE ALUNO OU PROFESSOR */
+CREATE OR REPLACE FUNCTION REMOVER_ALUNO_E_PROFESSOR(COD_USUARIO_DELETEADO INT)
+RETURNS VOID
+AS $$
+BEGIN
+	IF TABELA = 'ALUNO' THEN
+		DELETE FROM ALUNO WHERE COD_USUARIO = COD_USUARIO_DELETADO;
+	END IF;
+ 
+	IF TABELA = 'PROFESSOR' THEN
+		DELETE FROM ALUNO WHERE COD_USUARIO = COD_USUARIO_DELETADO;
+	END IF;
 END
 $$ LANGUAGE plpgsql;
 
@@ -1527,8 +1546,23 @@ BEGIN
     ELSIF NEW.EMAIL = EMAIL_PROFESSOR_EXISTENTE THEN
         RAISE EXCEPTION 'ESSE EMAIL JÁ CONSTA EM UM CADASTRO PROFESSOR, INSIRA UM EMAIL VALIDO.';
     END IF;
+
+    EXECUTE FORMAT('CREATE USER "%s" LOGIN PASSWORD ''%s'' IN GROUP ALUNO', NEW.EMAIL, NEW.SENHA);
    
     RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+--|------------------------------------------------------------------------------------------|---
+--|--- ################################ VERIFICA_DELECAO ################################ ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|---
+
+CREATE OR REPLACE FUNCTION VERIFICA_DELECAO()
+RETURNS TRIGGER
+AS $$
+BEGIN
+	EXECUTE FORMAT('DROP USER "%s"', OLD.EMAIL);
+	RETURN OLD;
 END
 $$ LANGUAGE plpgsql;
 
@@ -1723,6 +1757,16 @@ CREATE TRIGGER EVENTOS_DE_INSERCAO_ALUNO
 BEFORE INSERT ON ALUNO
 FOR EACH ROW
 EXECUTE PROCEDURE VERIFICA_INSERCAO();
+
+--|------------------------------------------------------------------------------------------|---
+--|--- ############################ EVENTOS_DE_DELECAO_ALUNO ############################ ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|---
+
+/* TRIGGER DELETE ALUNO */
+CREATE TRIGGER EVENTOS_DE_DELECAO_ALUNO
+BEFORE DELETE ON ALUNO
+FOR EACH ROW
+EXECUTE PROCEDURE VERIFICA_DELECAO();
 
 
 
