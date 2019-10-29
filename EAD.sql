@@ -10,11 +10,11 @@ CREATE GROUP PROFESSOR;
 GRANT USAGE ON SCHEMA PUBLIC TO GROUP ALUNO;
 GRANT USAGE ON SCHEMA PUBLIC TO GROUP PROFESSOR;
 
-GRANT EXECUTE ON FUNCTION ATUALIZAR_SALDO, SACAR_SALDO, COMPRAR_CURSO, INSERIR_ALUNO_E_PROFESSOR TO ALUNO;
+GRANT EXECUTE ON FUNCTION USUARIO_CONSULTAR_SALDO, ATUALIZAR_SALDO, SACAR_SALDO, COMPRAR_CURSO, INSERIR_ALUNO_E_PROFESSOR TO ALUNO;
 GRANT EXECUTE ON FUNCTION DELETAR_VIDEO, DELETAR_DISCIPLINA, DELETAR_MODULO, ADICIONAR_VIDEO_AULA, CRIAR_DISCIPLINAS, CRIAR_MODULO, CRIAR_CURSO, PUBLICAR_CURSO, ATUALIZAR_SALDO,
 SACAR_SALDO, RECEBER_SALARIO, INSERIR_ALUNO_E_PROFESSOR TO PROFESSOR;
 
-
+GRANT SELECT ON ALUNO TO GROUP ALUNO
 
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ SACAR_SALDO, RECEBER_SALARIO, INSERIR_ALUNO_E_PROFESSOR TO PROFESSOR;
 
 CREATE TABLE ALUNO
 (  
-    COD_ALUNO INT NOT NULL PRIMARY KEY,
+    COD_ALUNO SERIAL NOT NULL PRIMARY KEY,
     NOME VARCHAR(30) NOT NULL,
     CPF VARCHAR(11),
     DATA_NASCIMENTO DATE NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE ALUNO
  
 CREATE TABLE PROFESSOR
 (  
-    COD_PROFESSOR INT NOT NULL PRIMARY KEY,
+    COD_PROFESSOR SERIAL NOT NULL PRIMARY KEY,
     NOME VARCHAR(30) NOT NULL,
     CPF VARCHAR(11) NOT NULL,
     DATA_NASCIMENTO DATE NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE PROFESSOR
  
 CREATE TABLE CURSO
 (  
-    COD_CURSO INT NOT NULL PRIMARY KEY,
+    COD_CURSO SERIAL NOT NULL PRIMARY KEY,
     NOME VARCHAR(60) NOT NULL,
     DESCRICAO VARCHAR(300),
     DURACAO INT DEFAULT 0,
@@ -183,6 +183,76 @@ CREATE TABLE QUESTAO_ALUNO
 
 
 --|-------------------------------------------------------------------------------------------------|--
+--|--- ############################### RETORNAR_TABELA_DO_USUARIO ############################## ---|----------------------------------------------------------------
+--|-------------------------------------------------------------------------------------------------|--
+
+/* RETORNA O CODIGO E A TABELA DO USUARIO ATUAL */
+CREATE OR REPLACE FUNCTION RETORNAR_TABELA_DO_USUARIO()
+RETURNS VARCHAR(13)
+AS $$
+BEGIN
+	IF CURRENT_USER IN (SELECT EMAIL FROM ALUNO) THEN
+		RETURN 'ALUNO';
+	ELSIF CURRENT_USER IN (SELECT EMAIL FROM PROFESSOR) THEN
+		RETURN 'PROFESSOR';
+	ELSE
+		RETURN 'SUPER USUARIO';
+	END IF;
+
+END
+$$ LANGUAGE plpgsql;
+
+
+--|-------------------------------------------------------------------------------------------------|--
+--|--- ############################### RETORNAR_CODIGO_DO_USUARIO ############################## ---|----------------------------------------------------------------
+--|-------------------------------------------------------------------------------------------------|--
+
+/* RETORNA O CODIGO E A TABELA DO USUARIO ATUAL */
+CREATE OR REPLACE FUNCTION RETORNAR_CODIGO_DO_USUARIO(TABELA TEXT)
+RETURNS INT
+AS $$
+DECLARE
+	CODIGO INT;
+BEGIN
+	IF TABELA = 'ALUNO' THEN
+		SELECT COD_ALUNO INTO CODIGO FROM ALUNO WHERE EMAIL = CURRENT_USER;
+		RETURN CODIGO;
+	ELSIF TABELA = 'PROFESSOR' THEN
+		SELECT COD_PROFESSOR INTO CODIGO FROM PROFESSOR WHERE EMAIL = CURRENT_USER;
+		RETURN CODIGO;
+	END IF;
+
+END
+$$ LANGUAGE plpgsql;
+
+
+--|-------------------------------------------------------------------------------------------------|--
+--|--- ############################# VERIFICAR_PERMISSAO_DO_USUARIO ############################ ---|----------------------------------------------------------------
+--|-------------------------------------------------------------------------------------------------|--
+
+CREATE OR REPLACE FUNCTION VERIFICAR_PERMISSAO_DO_USUARIO(CODIGO_TABELA_VERIFICADA INT, TABELA TEXT)
+RETURNS BOOLEAN
+AS $$
+DECLARE
+	TABELA_DO_USUARIO VARCHAR(13);
+	EMAIL_USUARIO_VERIFICADO TEXT;
+BEGIN
+	TABELA_DO_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA = 'CURSO' THEN
+		IF TABELA_DO_USUARIO = 'PROFESSOR' THEN
+			SELECT EMAIL INTO EMAIL_USUARIO_VERIFICADO FROM CURSO WHERE COD_CURSO = CODIGO_TABELA_VERIFICADA;
+			IF EMAIL_USUARIO_VERIFICADO = CURRENT_USER THEN
+				RETURN TRUE;
+			ELSE
+				RETURN FALSE;
+			END IF;
+		END IF;
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+--|-------------------------------------------------------------------------------------------------|--
 --|--- ############################# CALCULAR_DATA_PAGAMENTO_ATUAL ############################# ---|----------------------------------------------------------------
 --|-------------------------------------------------------------------------------------------------|--
 
@@ -191,15 +261,15 @@ CREATE OR REPLACE FUNCTION CALCULAR_DATA_PAGAMENTO_ATUAL()
 RETURNS DATE
 AS $$
 DECLARE
-    MES_DATA_PAGAMENTO_ATUAL INT;
-    ANO_DATA_PAGAMENTO_ATUAL INT;
-    DATA_PAGAMENTO_ATUAL DATE;
+	MES_DATA_PAGAMENTO_ATUAL INT;
+	ANO_DATA_PAGAMENTO_ATUAL INT;
+	DATA_PAGAMENTO_ATUAL DATE;
 BEGIN
-    MES_DATA_PAGAMENTO_ATUAL := EXTRACT(MONTH FROM DATE(NOW()));
-    ANO_DATA_PAGAMENTO_ATUAL := EXTRACT(YEAR FROM DATE(NOW()));
+	MES_DATA_PAGAMENTO_ATUAL := EXTRACT(MONTH FROM DATE(NOW()));
+	ANO_DATA_PAGAMENTO_ATUAL := EXTRACT(YEAR FROM DATE(NOW()));
  
-    DATA_PAGAMENTO_ATUAL := CAST(CAST(ANO_DATA_PAGAMENTO_ATUAL AS VARCHAR(4)) || '-' || CAST(MES_DATA_PAGAMENTO_ATUAL AS VARCHAR(2)) || '-01' AS DATE);
-    RETURN DATA_PAGAMENTO_ATUAL;
+	DATA_PAGAMENTO_ATUAL := CAST(CAST(ANO_DATA_PAGAMENTO_ATUAL AS VARCHAR(4)) || '-' || CAST(MES_DATA_PAGAMENTO_ATUAL AS VARCHAR(2)) || '-01' AS DATE);
+	RETURN DATA_PAGAMENTO_ATUAL;
 END
 $$ LANGUAGE plpgsql;
 
@@ -215,62 +285,62 @@ AS $$
 DECLARE
     REGISTRO RECORD;
 BEGIN
-    IF TABELA = 'ALUNO' THEN
-        SELECT * INTO REGISTRO FROM ALUNO WHERE COD_ALUNO = COD_ANALISADO;
-        IF REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
+	IF TABELA = 'ALUNO' THEN
+		SELECT * INTO REGISTRO FROM ALUNO WHERE COD_ALUNO = COD_ANALISADO;
+		IF REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 
-    ELSIF TABELA = 'PROFESSOR' THEN
-        SELECT * INTO REGISTRO FROM PROFESSOR WHERE COD_PROFESSOR = COD_ANALISADO;
-        IF REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
+	ELSIF TABELA = 'PROFESSOR' THEN
+		SELECT * INTO REGISTRO FROM PROFESSOR WHERE COD_PROFESSOR = COD_ANALISADO;
+		IF REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 
-    ELSIF TABELA = 'CURSO' THEN
-        SELECT * INTO REGISTRO FROM CURSO WHERE COD_CURSO = COD_ANALISADO;
-        IF  REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
+	ELSIF TABELA = 'CURSO' THEN
+		SELECT * INTO REGISTRO FROM CURSO WHERE COD_CURSO = COD_ANALISADO;
+		IF  REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 
-    ELSIF TABELA = 'DISCIPLINA' THEN
-        SELECT * INTO REGISTRO FROM DISCIPLINA WHERE COD_DISCIPLINA = COD_ANALISADO;
-        IF  REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
+	ELSIF TABELA = 'DISCIPLINA' THEN
+		SELECT * INTO REGISTRO FROM DISCIPLINA WHERE COD_DISCIPLINA = COD_ANALISADO;
+		IF  REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 
-    ELSIF TABELA = 'QUESTAO' THEN
-        SELECT * INTO REGISTRO FROM QUESTAO WHERE COD_QUESTAO = COD_ANALISADO;
-        IF  REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
+	ELSIF TABELA = 'QUESTAO' THEN
+		SELECT * INTO REGISTRO FROM QUESTAO WHERE COD_QUESTAO = COD_ANALISADO;
+		IF  REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 
-    ELSIF TABELA = 'QUESTIONARIO' THEN
-        SELECT * INTO REGISTRO FROM QUESTIONARIO WHERE COD_QUESTIONARIO = COD_ANALISADO;
-        IF  REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
+	ELSIF TABELA = 'QUESTIONARIO' THEN
+		SELECT * INTO REGISTRO FROM QUESTIONARIO WHERE COD_QUESTIONARIO = COD_ANALISADO;
+		IF  REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 
-    ELSIF TABELA = 'QUESTAO_ALUNO' THEN
-        SELECT * INTO REGISTRO FROM QUESTAO_ALUNO WHERE COD_QUESTAO_ALUNO = COD_ANALISADO;
-        IF  REGISTRO IS NOT NULL THEN
-            RETURN TRUE;
-        ELSE
-            RETURN FALSE;
-        END IF;
-    END IF;
+	ELSIF TABELA = 'QUESTAO_ALUNO' THEN
+		SELECT * INTO REGISTRO FROM QUESTAO_ALUNO WHERE COD_QUESTAO_ALUNO = COD_ANALISADO;
+		IF  REGISTRO IS NOT NULL THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
+	END IF;
     
 END
 $$ LANGUAGE plpgsql;
@@ -851,25 +921,25 @@ $$ LANGUAGE plpgsql;
 --|---------------------------------------------------------------------------------------|--
 --|--- ############################### CONSULTAR_SALDO ############################### ---|--------------------------------------------------------------------------
 --|---------------------------------------------------------------------------------------|--
- 
+
 /* CONSULTA O SALDO DA TABELA */
 CREATE OR REPLACE FUNCTION CONSULTAR_SALDO(CODIGO INT, TABELA TEXT)
 RETURNS TEXT
 AS $$
 DECLARE
-    SALDO_CONSULTADO FLOAT;
+	SALDO_CONSULTADO FLOAT;
 BEGIN
-    IF TABELA = 'ALUNO' THEN
-        SELECT SALDO INTO SALDO_CONSULTADO FROM ALUNO WHERE CODIGO = COD_ALUNO;
-    ELSIF TABELA = 'PROFESSOR' THEN
-        SELECT SALDO INTO SALDO_CONSULTADO FROM PROFESSOR WHERE CODIGO = COD_PROFESSOR;
-    END IF;
+	IF TABELA = 'ALUNO' THEN
+		SELECT SALDO INTO SALDO_CONSULTADO FROM ALUNO WHERE CODIGO = COD_ALUNO;
+	ELSIF TABELA = 'PROFESSOR' THEN
+		SELECT SALDO INTO SALDO_CONSULTADO FROM PROFESSOR WHERE CODIGO = COD_PROFESSOR;
+	END IF;
    
-    IF SALDO_CONSULTADO = 0 THEN
-        RETURN 'SEM SALDO!';
-    ELSE
-        RETURN 'SEU SALDO É DE R$ ' || CAST(SALDO_SACADO AS TEXT) || '!';
-    END IF;
+	IF SALDO_CONSULTADO = 0 THEN
+		RETURN 'SEM SALDO!';
+	ELSE
+		RETURN 'SEU SALDO É DE R$ ' || CAST(SALDO_SACADO AS TEXT) || '!';
+	END IF;
 END
 $$ LANGUAGE plpgsql;
 
@@ -1010,18 +1080,11 @@ $$ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------------------|--
 
 /* CRIAR CURSO */
-CREATE OR REPLACE FUNCTION CRIAR_CURSO(CPF_PROFESSOR TEXT, COD_CURSO INT, NOME_CURSO TEXT, DESCRICAO TEXT, PRECO FLOAT)
+CREATE OR REPLACE FUNCTION CRIAR_CURSO(COD_PROFESSOR INT, NOME_CURSO TEXT, DESCRICAO TEXT, PRECO FLOAT)
 RETURNS VOID
 AS $$
-DECLARE
-	COD_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
 BEGIN
-   
-	IF COD_PROFESSOR IS NOT NULL THEN
-		INSERT INTO CURSO VALUES (COD_CURSO, NOME_CURSO, DESCRICAO, DEFAULT, PRECO, DEFAULT, DEFAULT, DEFAULT, COD_PROFESSOR);
-	ELSE
-		RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, CPF INVALIDO!';
-	END IF;
+	INSERT INTO CURSO VALUES (DEFAULT, NOME_CURSO, DESCRICAO, DEFAULT, PRECO, DEFAULT, DEFAULT, DEFAULT, COD_PROFESSOR);
 END
 $$ LANGUAGE plpgsql;
 
@@ -1571,10 +1634,720 @@ $$ LANGUAGE plpgsql;
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
+--*****************************************************************************************************************************************************************--
+----------------------------*****************************************  << ALUNO # PROFESSOR >>  *****************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|---------------------------------------------------------------------------------------|--
+--|--- ############################ USUARIO_CONSULTAR_SALDO ############################ ---|--------------------------------------------------------------------------
+--|---------------------------------------------------------------------------------------|--
+
+/* CONSULTA O SALDO DO ALUNO QUE É O USUÁRIO ATUAL */
+CREATE OR REPLACE FUNCTION USUARIO_CONSULTAR_SALDO()
+RETURNS TEXT
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+	CODIGO_USUARIO INT;
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO = 'SUPER USUARIO' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO UM ALUNO OU PROFESSOR PARA CONSULTAR O SALDO!';
+	ELSE
+		CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+		RETURN CONSULTAR_SALDO(CODIGO_USUARIO, TABELA_USUARIO);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+--|---------------------------------------------------------------------------------------|--
+--|--- ########################### USUARIO_ATUALIZAR_SALDO ########################### ---|--------------------------------------------------------------------------
+--|---------------------------------------------------------------------------------------|--
+
+/* USUARIO ATUALIZA SALDO INCREMENTANDO O VALOR DE SALDO A ALTERAR */
+CREATE OR REPLACE FUNCTION USUARIO_ATUALIZAR_SALDO(VALOR_SALDO_A_ALTERAR FLOAT)
+RETURNS VOID
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+	CODIGO_USUARIO INT;
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO = 'SUPER USUARIO' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO UM ALUNO OU PROFESSOR PARA ATUALIZAR O SALDO!';
+	ELSE
+		CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+		PERFORM ATUALIZAR_SALDO(VALOR_SALDO_A_ALTERAR, CODIGO_USUARIO, TABELA_USUARIO);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|-----------------------------------------------------------------------------------|--
+--|--- ########################### USUARIO_SACAR_SALDO ########################### ---|------------------------------------------------------------------------------
+--|-----------------------------------------------------------------------------------|--
+ 
+/* USUARIO SACA TODO O SALDO DA TABELA */
+CREATE OR REPLACE FUNCTION USUARIO_SACAR_SALDO(CODIGO INT, TABELA TEXT)
+RETURNS TEXT
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+	CODIGO_USUARIO INT;
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO = 'SUPER USUARIO' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO UM ALUNO OU PROFESSOR PARA SACAR O SALDO!';
+	ELSE
+		CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+		RETURN SACAR_SALDO(CODIGO_USUARIO, TABELA_USUARIO);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
 
 
 
+--*****************************************************************************************************************************************************************--
+----------------------------*********************************************  << PROFESSOR >>  *********************************************----------------------------
+--*****************************************************************************************************************************************************************--
 
+
+--|---------------------------------------------------------------------------------------|--
+--|--- ########################## PROFESSOR_RECEBER_SALARIO ########################## ---|--------------------------------------------------------------------------
+--|---------------------------------------------------------------------------------------|--
+
+/* FAZ O PROFESSOR RECEBER O SALÁRIO */
+CREATE OR REPLACE FUNCTION PROFESSOR_RECEBER_SALARIO()
+RETURNS VOID
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+	CODIGO_USUARIO INT;
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO != 'PROFESSOR' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO PROFESSOR PARA RECEBER O SALÁRIO!';
+	ELSE
+		CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+		PERFORM RECEBER_SALARIO(CODIGO_USUARIO);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------************************************  << ALUNO_CURSO # CURSO # ALUNO >>  ************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|-------------------------------------------------------------------------------------|--
+--|--- ############################ ALUNO_COMPRAR_CURSO ############################ ---|----------------------------------------------------------------------------
+--|-------------------------------------------------------------------------------------|--
+
+/* INSERIR OU ATUALIZAR ALUNO_CURSO QUANDO ALUNO FOR COMPRAR O CURSO */
+CREATE OR REPLACE FUNCTION ALUNO_COMPRAR_CURSO(COD_CURSO_ANALISADO INT)
+RETURNS VOID
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+	CODIGO_USUARIO INT;
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO != 'ALUNO' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO ALUNO PARA COMPRAR O CURSO!';
+	ELSE
+		CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+		PERFORM COMPRAR_CURSO(CODIGO_USUARIO, COD_CURSO_ANALISADO);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------*****************************************  << CURSO # PROFESSOR >>  *****************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|-----------------------------------------------------------------------------------------|--
+--|--- ############################# PROFESSOR_CRIAR_CURSO ############################# ---|------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------|--
+
+/* CRIAR CURSO */
+CREATE OR REPLACE FUNCTION PROFESSOR_CRIAR_CURSO(NOME_CURSO TEXT, DESCRICAO TEXT, PRECO FLOAT)
+RETURNS VOID
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+	CODIGO_USUARIO INT;
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO != 'PROFESSOR' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO PROFESSOR PARA CRIAR UM CURSO!';
+	ELSE
+		CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+		PERFORM CRIAR_CURSO(CODIGO_USUARIO, NOME_CURSO, DESCRICAO, PRECO);
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|-----------------------------------------------------------------------------------------|--
+--|--- ############################ PROFESSOR_DELETAR_CURSO ############################ ---|------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------|--
+
+/* DELETAR CURSO */
+CREATE OR REPLACE FUNCTION PROFESSOR_DELETAR_CURSO(COD_CURSO_DELETADO INT)
+RETURNS VOID
+AS $$
+DECLARE
+	TABELA_USUARIO VARCHAR(13);
+BEGIN
+	TABELA_USUARIO := RETORNAR_TABELA_DO_USUARIO();
+	IF TABELA_USUARIO != 'PROFESSOR' THEN
+		RAISE EXCEPTION 'É OBRIGATÓRIO ESTAR LOGADO COMO PROFESSOR PARA CRIAR UM CURSO!';
+	ELSE
+		IF VERIFICAR_PERMISSAO_DO_USUARIO(COD_CURSO_DELETADO, 'CURSO') = FALSE THEN
+			RAISE EXCEPTION 'NÃO É PERMITIDO QUE UM PROFESSOR DELETE O CURSO DE OUTRO!'
+		ELSE
+			CODIGO_USUARIO := RETORNAR_CODIGO_DO_USUARIO(TABELA_USUARIO);
+			PERFORM DELETAR_CURSO(COD_CURSO_DELETADO);
+		END IF
+	END IF;
+END
+$$ LANGUAGE plpgsql;
+
+RETURNS VOID
+AS $$
+BEGIN
+	DELETE FROM CURSO WHERE COD_CURSO = COD_CURSO_DELETADO;
+END
+$$ LANGUAGE plpgsql;
+
+--|--------------------------------------------------------------------------------------|--
+--|--- ############################### PUBLICAR_CURSO ############################### ---|---------------------------------------------------------------------------
+--|--------------------------------------------------------------------------------------|--
+--------------------------------------------------------------------------------------------------OBS: FALTA VERIFICAR SE PROFS É DO CURSO.--------------------------------------------------------------------------------------------------------
+
+/* PUBLICAR CURSO */
+CREATE OR REPLACE FUNCTION PUBLICAR_CURSO(CPF_PROFESSOR TEXT, CODIGO_CURSO INT)
+RETURNS VOID
+AS $$
+DECLARE
+    CPF_PROFESSOR_EXISTENTE TEXT := USUARIO_EXISTENTE(CPF_PROFESSOR, 'PROFESSOR');
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_EXISTE INT := CURSO_EXISTE(CODIGO_CURSO);
+    DISPONIBILIDADE BOOLEAN := (SELECT C_S.DISPONIBILIDADE FROM CURSO C_S WHERE C_S.COD_CURSO = CODIGO_CURSO);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR = CODIGO_PROFESSOR AND C_R.COD_CURSO = CODIGO_CURSO);
+BEGIN
+ 
+IF CPF_PROFESSOR_EXISTENTE IS NOT NULL THEN
+	IF CURSO_EXISTE IS NOT NULL THEN
+		IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+			IF DISPONIBILIDADE = TRUE THEN
+				UPDATE CURSO SET PUBLICADO = TRUE WHERE COD_CURSO = CODIGO_CURSO;
+			ELSE
+				RAISE EXCEPTION 'O CURSO NÃO ATENDE OS REQUESITOS NO MOMENTO PARA SER PUBLICADO, ATENDA OS REQUESITOS';
+			END IF;
+		ELSE
+			RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+		END IF;
+	ELSE
+		RAISE EXCEPTION 'ESSE CURSO NÃO EXISTE, DIGITE UM COD_CURSO VALIDO!';
+	END IF;
+ELSE
+	RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, CPF INVALIDO!';
+END IF;
+   
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------*****************************************  << MODULO # PROFESSOR >>  ****************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|-----------------------------------------------------------------------------------------|--
+--|--- ################################# CRIAR_MODULO ################################## ---|------------------------------------------------------------------------
+--|-----------------------------------------------------------------------------------------|--
+
+/* CRIAR MODULOS */
+CREATE OR REPLACE FUNCTION CRIAR_MODULO(CPF_PROFESSOR TEXT, CODIGO_CURSO INT, NOME_MODULO TEXT[], DESCRICAO_MODULO TEXT[], DURACAO_MODULO INT[])
+RETURNS VOID
+AS $$
+DECLARE
+    CURSO_EXISTE INT := CURSO_EXISTE(CODIGO_CURSO);
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR = CODIGO_PROFESSOR AND C_R.COD_CURSO = CODIGO_CURSO);
+    CONTADOR INT := 1;
+BEGIN
+    IF CODIGO_PROFESSOR IS NOT NULL THEN
+        IF CURSO_EXISTE IS NOT NULL THEN
+            IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+                WHILE CONTADOR <= ARRAY_LENGTH(NOME_MODULO,1) LOOP
+                    INSERT INTO MODULO VALUES (DEFAULT, NOME_MODULO[CONTADOR], DESCRICAO_MODULO[CONTADOR], DURACAO_MODULO[CONTADOR], CODIGO_CURSO);
+                    CONTADOR := CONTADOR + 1;
+                END LOOP;
+            ELSE
+                RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE CURSO NÃO EXISTE, DIGITE UM COD_CURSO VALIDO!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, INSIRA UM CPF VALIDO!';
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|--------------------------------------------------------------------------------------|--
+--|--- ############################### DELETAR_MODULO ############################### ---|---------------------------------------------------------------------------
+--|--------------------------------------------------------------------------------------|--
+
+/* DELETANDO MODULO */
+CREATE OR REPLACE FUNCTION DELETAR_MODULO(CPF_PROFESSOR TEXT, CODIGO_MODULO INT)
+RETURNS VOID
+AS $$
+DECLARE
+    MODULO_EXISTE INT := (SELECT C_S.COD_CURSO FROM CURSO C_S INNER JOIN MODULO M_D ON
+			  C_S.COD_CURSO = M_D.COD_CURSO WHERE M_D.COD_MODULO = CODIGO_MODULO);
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR =
+			        CODIGO_PROFESSOR AND C_R.COD_CURSO = MODULO_EXISTE );
+BEGIN
+   
+    IF CODIGO_PROFESSOR IS NOT NULL THEN
+        IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+            IF MODULO_EXISTE IS NOT NULL THEN
+                DELETE FROM MODULO M_D WHERE M_D.COD_MODULO = CODIGO_MODULO;
+            ELSE
+                RAISE EXCEPTION 'ESSE MODULO NÃO EXISTE, INSIRA UM COD_MODULO VALIDO!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, INSIRA UM CPF VALIDO!';
+    END IF;
+   
+END
+$$ LANGUAGE plpgsql;
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------*************************************  << PRE_REQUISITO # PROFESSOR >>  *************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+--|--------------------------------------------------------------------------------------|--
+--|--- ############################# CRIAR_PRE_REQUISITO ############################ ---|---------------------------------------------------------------------------
+--|--------------------------------------------------------------------------------------|--
+
+/* CRIAR PRE_REQUISITO */
+CREATE OR REPLACE FUNCTION CRIAR_PRE_REQUISITO(COD_MODULO INT, COD_MODULO_PRE_REQUISITO INT)
+RETURNS VOID
+AS $$
+BEGIN
+   
+	INSERT INTO PRE_REQUISITO VALUES (DEFAULT, COD_MODULO, COD_MODULO_PRE_REQUISITO);
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------***************************************  << DISCIPLINA # PROFESSOR >>  **************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ############################### CRIAR_DISCIPLINAS ################################ ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+/* CRIA DISCIPLINAS PARA ALGUM MODULO */
+CREATE OR REPLACE FUNCTION CRIAR_DISCIPLINAS(CPF_PROFESSOR TEXT, CODIGO_MODULO INT, NOME_DISCIPLINA TEXT[], DESCRICAO_DISCIPLINA TEXT[])
+RETURNS VOID
+AS $$
+DECLARE
+    CODIGO_CURSO INT := (SELECT C_S.COD_CURSO FROM CURSO C_S INNER JOIN MODULO M_D ON
+			 C_S.COD_CURSO = M_D.COD_CURSO WHERE M_D.COD_MODULO = CODIGO_MODULO);
+    MODULO_EXISTENTE INT := MODULO_EXISTE(CODIGO_MODULO);
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR = CODIGO_PROFESSOR AND C_R.COD_CURSO = CODIGO_CURSO);
+    CONTADOR INT := 1;
+BEGIN
+   
+    IF CODIGO_PROFESSOR IS NOT NULL THEN
+        IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+            IF MODULO_EXISTENTE IS NOT NULL THEN
+                WHILE CONTADOR <= ARRAY_LENGTH(NOME_DISCIPLINA,1) LOOP
+                    INSERT INTO DISCIPLINA VALUES (DEFAULT, NOME_DISCIPLINA[CONTADOR], DESCRICAO_DISCIPLINA[CONTADOR], CODIGO_MODULO);
+                    CONTADOR := CONTADOR + 1;
+                END LOOP;
+	    ELSE
+                RAISE EXCEPTION 'ESSE MÓDULO NÃO EXISTE, INSIRA UM COD_MODULO VALIDO!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, INSIRA UM CPF VALIDO!';
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ############################### DELETAR_DISCIPLINA ############################### ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+/* DELETANDO DISCIPLINA */
+CREATE OR REPLACE FUNCTION DELETAR_DISCIPLINA(CPF_PROFESSOR TEXT, CODIGO_DISCIPLINA INT)
+RETURNS VOID
+AS $$
+DECLARE
+    DISCIPLINA_EXISTENTE INT = (SELECT C_S.COD_CURSO FROM CURSO C_S INNER JOIN MODULO M_D ON
+				C_S.COD_CURSO = M_D.COD_CURSO INNER JOIN DISCIPLINA D_S ON
+				M_D.COD_MODULO = D_S.COD_MODULO WHERE D_S.COD_DISCIPLINA = CODIGO_DISCIPLINA);
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR =
+				CODIGO_PROFESSOR AND C_R.COD_CURSO = DISCIPLINA_EXISTENTE );
+BEGIN
+   
+    IF CODIGO_PROFESSOR IS NOT NULL THEN
+        IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+            IF DISCIPLINA_EXISTENTE IS NOT NULL THEN
+                DELETE FROM DISCIPLINA D_C WHERE D_C.COD_DISCIPLINA = CODIGO_DISCIPLINA;
+            ELSE
+                RAISE EXCEPTION 'ESSA DISCIPLINA NÃO EXISTE, INSIRA UM COD_DISCIPLINA VALIDO!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, INSIRA UM CPF VALIDO!';
+    END IF;
+   
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------***************************************  << VIDEO_AULA # PROFESSOR >>  **************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ############################## ADICIONAR_VIDEO_AULA ############################## ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+/* ADICIONANDO VIDEO AULAS AS DISCIPLINAS  */
+CREATE OR REPLACE FUNCTION ADICIONAR_VIDEO_AULA(CPF_PROFESSOR TEXT, CODIGO_DISCIPLINA INT, TITULO_VIDEO TEXT[], DESCRICAO TEXT[], DURACAO INT[])
+RETURNS VOID
+AS $$
+DECLARE
+    CODIGO_CURSO INT := (SELECT M_D.COD_CURSO FROM CURSO C_R INNER JOIN MODULO M_D ON
+			 C_R.COD_CURSO = M_D.COD_CURSO INNER JOIN DISCIPLINA D_C ON
+			 M_D.COD_MODULO = D_C.COD_MODULO WHERE D_C.COD_DISCIPLINA = CODIGO_DISCIPLINA);
+    DISCIPLINA_EXISTENTE INT := DISCIPLINA_EXISTENTE(CODIGO_DISCIPLINA);
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR = CODIGO_PROFESSOR AND
+				C_R.COD_CURSO = CODIGO_CURSO);
+    CONTADOR INT := 1;
+BEGIN
+   
+    IF CODIGO_PROFESSOR IS NOT NULL THEN
+        IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+            IF DISCIPLINA_EXISTENTE IS NOT NULL THEN
+                WHILE CONTADOR <= ARRAY_LENGTH(TITULO_VIDEO,1) LOOP -- NO ARRAY LENGHT, ESSE "1" SIGNIFICA A QUANTIDADE DE COLUNAS DA ARRAY.
+                    INSERT INTO VIDEO_AULA VALUES (DEFAULT, TITULO_VIDEO[CONTADOR], DESCRICAO[CONTADOR], DURACAO[CONTADOR], CODIGO_DISCIPLINA);
+                    CONTADOR := CONTADOR + 1;
+                END LOOP;
+	    ELSE
+                RAISE EXCEPTION 'ESSA DISCIPLINA NÃO EXISTE, INSIRA UM COD_DISCIPLINA VALIDO!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, INSIRA UM CPF VALIDO!';
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ################################# DELETAR_VIDEO ################################## ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+/* DELETANDO VIDEO */
+CREATE OR REPLACE FUNCTION DELETAR_VIDEO(CPF_PROFESSOR TEXT, CODIGO_VIDEO_AULA INT)
+RETURNS VOID
+AS $$
+DECLARE
+    VIDEO_EXISTE INT := (SELECT C_S.COD_CURSO FROM CURSO C_S INNER JOIN MODULO M_D ON
+			 C_S.COD_CURSO = M_D.COD_CURSO INNER JOIN DISCIPLINA D_S ON
+			 M_D.COD_MODULO = D_S.COD_MODULO INNER JOIN VIDEO_AULA V_A ON
+			 D_S.COD_DISCIPLINA = V_A.COD_DISCIPLINA WHERE V_A.COD_VIDEO_AULA = CODIGO_VIDEO_AULA);
+    CODIGO_PROFESSOR INT := (SELECT P_F.COD_PROFESSOR FROM PROFESSOR P_F WHERE P_F.CPF = CPF_PROFESSOR);
+    CURSO_PERTENCE_PROF INT := (SELECT C_R.COD_CURSO FROM CURSO C_R WHERE C_R.COD_PROFESSOR = CODIGO_PROFESSOR AND
+				C_R.COD_CURSO = VIDEO_EXISTE);
+BEGIN
+   
+    IF CODIGO_PROFESSOR IS NOT NULL THEN
+        IF CURSO_PERTENCE_PROF IS NOT NULL THEN
+            IF VIDEO_EXISTE IS NOT NULL THEN
+                DELETE FROM VIDEO_AULA V_A WHERE V_A.COD_VIDEO_AULA = CODIGO_VIDEO_AULA;
+            ELSE
+                RAISE EXCEPTION 'ESSE VIDEO NÃO EXISTE, INSIRA UM COD_VIDEO_AULA VALIDO!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE CURSO NÃO PERCENTE A ESSE PROFESSOR!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE PROFESSOR NÃO EXISTE, INSIRA UM CPF VALIDO!';
+    END IF;
+ 
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------**************************************  << ALUNO_VIDEOS_ASSISTIDOS >>  **************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ################################# ASSISTIR_VIDEO ################################# ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+/* ASSISTIR VIDEOS */
+-- OBS: FALTA VERIFICAR SE O ALUNO COMPROU O CURSO?? -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+CREATE OR REPLACE FUNCTION ASSISTIR_VIDEO(CPF_ALUNO TEXT, CODIGO_VIDEO_AULA INT)
+RETURNS VOID
+AS $$
+DECLARE
+    VIDEO_EXISTE INT := (SELECT V_L.COD_VIDEO_AULA FROM VIDEO_AULA V_L WHERE V_L.COD_VIDEO_AULA = CODIGO_VIDEO_AULA);
+    ALUNO_EXISTE INT := (SELECT A_L.COD_ALUNO FROM ALUNO A_L WHERE A_L.CPF = CPF_ALUNO);
+    DISCIPLINA INT := (SELECT V_L.COD_DISCIPLINA FROM DISCIPLINA D_C INNER JOIN VIDEO_AULA V_L ON D_C.COD_DISCIPLINA =
+		       V_L.COD_DISCIPLINA WHERE V_L.COD_VIDEO_AULA = CODIGO_VIDEO_AULA);
+    MODULO INT := (SELECT D_C.COD_MODULO FROM DISCIPLINA D_C INNER JOIN VIDEO_AULA V_L ON D_C.COD_DISCIPLINA =
+		   V_L.COD_DISCIPLINA WHERE V_L.COD_VIDEO_AULA = CODIGO_VIDEO_AULA);
+    MODULO_ACESSIVEL BOOLEAN := (SELECT A_M.ACESSIVEL FROM ALUNO_MODULO A_M INNER JOIN MODULO M_D ON
+				 A_M.COD_MODULO = M_D.COD_MODULO WHERE A_M.COD_MODULO = MODULO AND A_M.COD_ALUNO = ALUNO_EXISTE);
+BEGIN
+ 
+    IF ALUNO_EXISTE IS NOT NULL THEN
+        IF VIDEO_EXISTE IS NOT NULL THEN
+            IF MODULO_ACESSIVEL = TRUE THEN
+		-- OBS: COM A FUNÇÃO ASSIM, SÓ FUNCIONA PRO PRIMEIRO ALUNO QUE ASSISTE -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,,,,,
+                IF ALUNO_JA_ASSISTIU(CODIGO_VIDEO_AULA) = FALSE THEN
+                    INSERT INTO ALUNO_VIDEOS_ASSISTIDOS VALUES (DEFAULT, ALUNO_EXISTE, CODIGO_VIDEO_AULA);
+                END IF;
+            ELSE
+                RAISE EXCEPTION 'VOCÊ NÃO ATINGIU A META OBRIGATORIA DE VIDEOS ASSISTIDOS PARA ACESSAR ESSE MÓDULO!';
+            END IF;
+        ELSE
+            RAISE EXCEPTION 'ESSE VIDEO AULA NÃO EXISTE!';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'ESSE ALUNO NÃO EXISTE, CPF INVALIDO!';
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------****************************************  << QUESTAO # PROFESSOR >>  ****************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ################################# CRIAR_QUESTAO ################################## ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+CREATE OR REPLACE FUNCTION CRIAR_QUESTAO(TEXTO_INSERIDO TEXT, COD_DISCIPLINA_INSERIDA INT)
+RETURNS VOID
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_DISCIPLINA_INSERIDA, 'DISCIPLINA') IS FALSE THEN
+        RAISE EXCEPTION 'ESSA DISCIPLINA AINDA NÃO FOI CADASTRADA!';
+    ELSIF LENGTH(TEXTO_INSERIDO) < 10 THEN
+        RAISE EXCEPTION 'TEXTO DA QUESTÃO MUITO CURTO COM MENOS DE 10 CARACTERES INVÁLIDO!';
+    ELSE
+        INSERT INTO QUESTAO VALUES (DEFAULT, TEXTO_INSERIDO, COD_DISCIPLINA_INSERIDA);
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ################################# DELETAR_QUESTAO ################################ ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+CREATE OR REPLACE FUNCTION DELETAR_QUESTAO(COD_QUESTAO_DELETADA INT)
+RETURNS VOID
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTAO_DELETADA, 'QUESTAO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSA QUESTÃO AINDA NÃO FOI CADASTRADA!';
+    ELSE
+        DELETE FROM QUESTAO WHERE COD_QUESTAO = COD_QUESTAO_DELETADA;
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ########################### LISTAR_QUESTOES_DOS_ALUNOS ########################### ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+CREATE OR REPLACE FUNCTION LISTAR_QUESTOES_DOS_ALUNOS(COD_PROFESSOR_ANALISADO INT)
+RETURNS TABLE(COD_QUESTAO_ALUNO INT, RESPOSTA_CORRETA VARCHAR(13), TEXTO VARCHAR(500), RESPOSTA_ALUNO VARCHAR(500))
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_PROFESSOR_ANALISADO, 'PROFESSOR') IS FALSE THEN
+        RAISE EXCEPTION 'ESSE PROFESSOR AINDA NÃO FOI CADASTRADO!';
+    END IF;
+   
+    RETURN QUERY SELECT Q_A.COD_QUESTAO_ALUNO, Q_A.RESPOSTA_CORRETA, Q.TEXTO, Q_A.RESPOSTA_ALUNO FROM QUESTAO_ALUNO Q_A
+    INNER JOIN QUESTAO Q ON Q_A.COD_QUESTAO = Q.COD_QUESTAO INNER JOIN QUESTAO_QUESTIONARIO Q_Q ON Q.COD_QUESTAO = Q_Q.COD_QUESTAO
+    INNER JOIN QUESTIONARIO Q_R ON Q_Q.COD_QUESTIONARIO = Q_R.COD_QUESTIONARIO INNER JOIN DISCIPLINA D_C ON Q_R.COD_DISCIPLINA = D_C.COD_DISCIPLINA
+    INNER JOIN MODULO M_D ON D_C.COD_MODULO = M_D.COD_MODULO INNER JOIN CURSO C_R ON M_D.COD_CURSO = C_R.COD_CURSO
+    WHERE C_R.COD_PROFESSOR = COD_PROFESSOR_ANALISADO
+    ORDER BY C_R.COD_CURSO, M_D.COD_MODULO, D_C.COD_DISCIPLINA, Q_R.COD_QUESTIONARIO, Q_Q.COD_QUESTAO_QUESTIONARIO, Q_Q.COD_QUESTAO, Q_A.COD_QUESTAO_ALUNO;
+END
+$$ LANGUAGE plpgsql;
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ################################# CORRIGIR_QUESTAO ################################ --|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+CREATE OR REPLACE FUNCTION CORRIGIR_QUESTAO(COD_PROFESSOR_ANALISADO INT, COD_QUESTAO_ALUNO_CORRIGIDA INT, RESPOSTA_CORRETA_INSERIDA TEXT)
+RETURNS VOID
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_PROFESSOR_ANALISADO, 'PROFESSOR') IS FALSE THEN
+        RAISE EXCEPTION 'ESSE PROFESSOR AINDA NÃO FOI CADASTRADO!';
+    ELSIF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTAO_ALUNO_CORRIGIDA, 'QUESTAO_ALUNO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSE VÍNCULO QUESTÃO_ALUNO AINDA NÃO FOI CADASTRADO!';
+    ELSIF (COD_QUESTAO_ALUNO_CORRIGIDA IN (SELECT COD_QUESTAO_ALUNO FROM LISTAR_QUESTOES_DOS_ALUNOS(COD_PROFESSOR_ANALISADO))) IS FALSE THEN
+        RAISE EXCEPTION 'VOCÊ NÃO TEM PERMISSÃO PARA MANIPULAÇÃO ESSE VÍNCULO QUESTÃO_ALUNO! ESSA QUESTÃO AINDA NÃO FOI POSTA EM UM QUESTIONÁRIO DE UM CURSO SEU!';
+    ELSIF NOT (RESPOSTA_CORRETA_INSERIDA ILIKE 'CORRETA' OR RESPOSTA_CORRETA_INSERIDA ILIKE 'INCORRETA') THEN
+        RAISE EXCEPTION 'DEVE-SE INFORMAR A RESPOSTA DO ALUNO APENAS COMO "CORRETA" OU "INCORRETA"';
+    ELSE
+        UPDATE QUESTAO_ALUNO SET RESPOSTA_CORRETA = RESPOSTA_CORRETA_INSERIDA WHERE COD_QUESTAO_ALUNO = COD_QUESTAO_ALUNO_CORRIGIDA;
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------*************************************  << QUESTIONARIO # PROFESSOR >>  **************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ############################### CRIAR_QUESTIONARIO ############################### ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+ 
+CREATE OR REPLACE FUNCTION CRIAR_QUESTIONARIO(NOME_INSERIDO TEXT, COD_DISCIPLINA_INSERIDA INT)
+RETURNS VOID
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_DISCIPLINA_INSERIDA, 'DISCIPLINA') IS FALSE THEN
+        RAISE EXCEPTION 'ESSA DISCIPLINA AINDA NÃO FOI CADASTRADA!';
+    ELSE
+        INSERT INTO QUESTIONARIO VALUES (DEFAULT, NOME_INSERIDO, COD_DISCIPLINA_INSERIDA);
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+ 
+--|------------------------------------------------------------------------------------------|---
+--|--- ############################## DELETAR_QUESTIONARIO ############################## ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|---
+
+CREATE OR REPLACE FUNCTION DELETAR_QUESTIONARIO(COD_QUESTIONARIO_DELETADO INT)
+RETURNS VOID
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTIONARIO_DELETADO, 'QUESTIONARIO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSE QUESTIONARIO AINDA NÃO FOI CADASTRADO!';
+    ELSE
+        DELETE FROM QUESTIONARIO WHERE COD_QUESTIONARIO = COD_QUESTIONARIO_DELETADO;
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------*********************************  << QUESTAO_QUESTIONARIO # PROFESSOR >>  **********************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|--
+--|--- ######################## VINCULAR_QUESTAO_A_QUESTIONARIO ######################### ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|--
+
+CREATE OR REPLACE FUNCTION VINCULAR_QUESTAO_A_QUESTIONARIO(COD_QUESTIONARIO_VINCULADO INT, COD_QUESTAO_VINCULADA INT)
+RETURNS VOID
+AS $$
+DECLARE
+    COD_DISCIPLINA_DO_QUESTIONARIO_VINCULADO INT := (SELECT COD_DISCIPLINA FROM QUESTIONARIO WHERE COD_QUESTIONARIO = COD_QUESTIONARIO_VINCULADO);
+    COD_DISCIPLINA_DA_QUESTAO_VINCULADA INT := (SELECT COD_DISCIPLINA FROM QUESTAO WHERE COD_QUESTAO = COD_QUESTAO_VINCULADA);
+BEGIN
+    --------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    ------------------------- VERIFICAR SE A DISCIPLINA É DO PROFESSOR (TEM QUE RECEBER O COD_PROFESSOR) ---------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTIONARIO_VINCULADO, 'QUESTIONARIO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSE QUESTIONARIO AINDA NÃO FOI CADASTRADO!';
+    ELSIF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTAO_VINCULADA, 'QUESTAO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSA QUESTAO AINDA NÃO FOI CADASTRADA!';
+    ELSIF COD_DISCIPLINA_DO_QUESTIONARIO_VINCULADO != COD_DISCIPLINA_DA_QUESTAO_VINCULADA THEN
+        RAISE EXCEPTION 'NÃO SE PODE VINCULAR UMA QUESTAO A UM QUESTIONARIO DE OUTRA DISCIPLINA!';
+    ELSIF VERIFICAR_VINCULO_QUESTAO_QUESTIONARIO(COD_QUESTIONARIO_VINCULADO, COD_QUESTAO_VINCULADA) IS TRUE THEN
+        RAISE EXCEPTION 'ESSA QUESTÃO JÁ ESTÁ VINCULADA A ESSE QUESTIONÁRIO!';
+    ELSE
+        INSERT INTO QUESTAO_QUESTIONARIO VALUES (DEFAULT, COD_QUESTAO_VINCULADA, COD_QUESTIONARIO_VINCULADO);
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+--*****************************************************************************************************************************************************************--
+----------------------------******************************************  << QUESTAO # ALUNO >>  ******************************************----------------------------
+--*****************************************************************************************************************************************************************--
+
+
+--|------------------------------------------------------------------------------------------|---
+--|--- ########################## SUBMETER_RESPOSTA_DE_QUESTAO ########################## ---|-----------------------------------------------------------------------
+--|------------------------------------------------------------------------------------------|---
+CREATE OR REPLACE FUNCTION SUBMETER_RESPOSTA_DE_QUESTAO(COD_ALUNO_ANALISADO INT, COD_QUESTAO_SUBMETIDA INT, RESPOSTA_ALUNO_SUBMETIDA TEXT)
+RETURNS VOID
+AS $$
+BEGIN
+    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_ALUNO_ANALISADO, 'ALUNO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSE ALUNO AINDA NÃO FOI CADASTRADO!';
+    ELSIF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTAO_SUBMETIDA, 'QUESTAO') IS FALSE THEN
+        RAISE EXCEPTION 'ESSA QUESTAO AINDA NÃO FOI CADASTRADA!';
+    ELSIF VERIFICAR_VINCULO_QUESTAO_ALUNO(COD_ALUNO_ANALISADO, COD_QUESTAO_SUBMETIDA) IS TRUE THEN
+        UPDATE QUESTAO_ALUNO SET RESPOSTA_ALUNO = RESPOSTA_ALUNO_SUBMETIDA, RESPOSTA_CORRETA = DEFAULT
+        WHERE COD_ALUNO = COD_ALUNO_ANALISADO AND COD_QUESTAO = COD_QUESTAO_SUBMETIDA;
+    ELSE
+        INSERT INTO QUESTAO_ALUNO VALUES (DEFAULT, RESPOSTA_ALUNO_SUBMETIDA, DEFAULT, COD_QUESTAO_SUBMETIDA, COD_ALUNO_ANALISADO);
+    END IF;
+END
+$$ LANGUAGE plpgsql;
 
 
 
@@ -2127,13 +2900,13 @@ SELECT FROM INSERIR_ALUNO_E_PROFESSOR
 
 /* PARAMENTROS: CPF_PROFESSOR, COD_CURSO, NOME_CURSO, DESCRICAO, PRECO */
 SELECT FROM CRIAR_CURSO
-('12345678912', 1, 'PROGRAMACAO', 'APRENDENDO ALGORITMOS E PROGRAMACAO', 250);
+(1, 'PROGRAMACAO', 'APRENDENDO ALGORITMOS E PROGRAMACAO', 250);
 SELECT FROM CRIAR_CURSO
-('23456789123', 2, 'JOGOS', 'APRENDENDO PROGRAMACAO PARA JOGOS', 150);
+(2, 'JOGOS', 'APRENDENDO PROGRAMACAO PARA JOGOS', 150);
 SELECT FROM CRIAR_CURSO
-('34567891234', 3, 'MATEMATICA', 'APRENDENDO A FAZER CALCULOS', 100);
+(3, 'MATEMATICA', 'APRENDENDO A FAZER CALCULOS', 100);
 SELECT FROM CRIAR_CURSO
-('34567891234', 4, 'PROGRAMACAO SEM GRAFOS', 'APRENDENDO A PROGRAMAR SEM GRAFOS', 200);
+(3, 'PROGRAMACAO SEM GRAFOS', 'APRENDENDO A PROGRAMAR SEM GRAFOS', 200);
 
 /* PARAMETROS: CPF_PROFESSOR, CODIGO_CURSO, NOME_MODULO(ARRAY), DESCRICAO_MODULO(ARRAY), DURACAO_MODULO(ARRAY) */
 SELECT FROM CRIAR_MODULO
@@ -2232,7 +3005,7 @@ SELECT FROM CRIAR_QUESTAO ('QUANTO É 10000 - 800?', 3);
 SELECT FROM DELETAR_QUESTAO(10);
 
 /* PARÂMETROS: COD_PROFESSOR_ANALISADO */
-SELECT LISTAR_QUESTOES_DOS_ALUNOS(3);
+SELECT * FROM LISTAR_QUESTOES_DOS_ALUNOS(3);
 
 /* PARAMETROS: COD_PROFESSOR_ANALISADO, COD_QUESTAO_ALUNO_CORRIGIDA, RESPOSTA_CORRETA_INSERIDA */
 SELECT FROM CORRIGIR_QUESTAO(3, 1, 'CORRETA');
