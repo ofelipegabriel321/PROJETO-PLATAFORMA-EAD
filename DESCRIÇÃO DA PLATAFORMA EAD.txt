@@ -195,11 +195,11 @@
 ++ PROFESSOR_CORRIGIR_QUESTAO
 
 
---------QUESTIONARIO # PROFESSOR-----------------------------------
+--------QUESTIONARIO # PROFESSOR-----------------------
 ++ PROFESSOR_CRIAR_QUESTIONARIO
 ++ PROFESSOR_DELETAR_QUESTIONARIO
 
---------QUESTAO_QUESTIONARIO # PROFESSOR---------------------------
+--------QUESTAO_QUESTIONARIO # PROFESSOR---------------
 ++ PROFESSOR_VINCULAR_QUESTAO_A_QUESTIONARIO
 
 --------QUESTAO # ALUNO--------------------------------
