@@ -1505,15 +1505,15 @@ $$ LANGUAGE plpgsql;
 --|--- ################################# DELETAR_QUESTAO ################################ ---|-----------------------------------------------------------------------
 --|------------------------------------------------------------------------------------------|--
 
-CREATE OR REPLACE FUNCTION DELETAR_QUESTAO(COD_QUESTAO_DELETADA INT)
+CREATE OR REPLACE FUNCTION DELETAR_QUESTAO(CODIGO_QUESTAO INT)
 RETURNS VOID
 AS $$
 BEGIN
-    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTAO_DELETADA, 'QUESTAO') IS FALSE THEN
-        RAISE EXCEPTION 'ESSA QUESTÃO AINDA NÃO FOI CADASTRADA!';
-    ELSE
-        DELETE FROM QUESTAO WHERE COD_QUESTAO = COD_QUESTAO_DELETADA;
-    END IF;
+	IF VERIFICAR_SE_REGISTRO_EXISTE(CODIGO_QUESTAO, 'QUESTAO') IS FALSE THEN
+		RAISE EXCEPTION 'ESSA QUESTÃO AINDA NÃO FOI CADASTRADA!';
+	ELSE
+		DELETE FROM QUESTAO WHERE COD_QUESTAO = CODIGO_QUESTAO;
+	END IF;
 END
 $$ LANGUAGE plpgsql;
 
@@ -2074,18 +2074,20 @@ END
 $$ LANGUAGE plpgsql;
 
 --|------------------------------------------------------------------------------------------|--
---|--- ################################# DELETAR_QUESTAO ################################ ---|-----------------------------------------------------------------------
+--|--- ############################ PROFESSOR_DELETAR_QUESTAO ########################### ---|-----------------------------------------------------------------------
 --|------------------------------------------------------------------------------------------|--
 
-CREATE OR REPLACE FUNCTION DELETAR_QUESTAO(COD_QUESTAO_DELETADA INT)
+CREATE OR REPLACE FUNCTION PROFESSOR_DELETAR_QUESTAO(CODIGO_QUESTAO INT)
 RETURNS VOID
 AS $$
 BEGIN
-    IF VERIFICAR_SE_REGISTRO_EXISTE(COD_QUESTAO_DELETADA, 'QUESTAO') IS FALSE THEN
-        RAISE EXCEPTION 'ESSA QUESTÃO AINDA NÃO FOI CADASTRADA!';
-    ELSE
-        DELETE FROM QUESTAO WHERE COD_QUESTAO = COD_QUESTAO_DELETADA;
-    END IF;
+	PERFORM VERIFICAR_PERMISSAO_DA_TABELA_DO_USUARIO('PROFESSOR');
+	
+	IF VERIFICAR_PERMISSAO_DO_USUARIO(CODIGO_QUESTAO, 'QUESTAO') IS FALSE THEN
+		RAISE EXCEPTION 'NÃO É PERMITIDO QUE UM PROFESSOR REMOVA UMA QUESTAO EM UMA DISCIPLINA EM UM MÓDULO DO CURSO DE OUTRO!';
+	ELSE
+		DELETE FROM QUESTAO WHERE COD_QUESTAO = COD_QUESTAO_DELETADA;
+	END IF;
 END
 $$ LANGUAGE plpgsql;
 
