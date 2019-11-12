@@ -126,7 +126,7 @@
 >> DELETAR_VIDEO_AULA
 
 --------ALUNO_VIDEOS_ASSISTIDOS------------------------
->> ASSISTIR_VIDEO
+>> ASSISTIR_VIDEO_AULA
 
 
 --------QUESTAO # PROFESSOR----------------------------
@@ -183,7 +183,7 @@
 >> PROFESSOR_DELETAR_VIDEO_AULA
 
 --------ALUNO_VIDEOS_ASSISTIDOS------------------------
-++ ALUNO_ASSISTIR_VIDEO
+>> ALUNO_ASSISTIR_VIDEO_AULA
 
 
 --------QUESTAO # PROFESSOR----------------------------
