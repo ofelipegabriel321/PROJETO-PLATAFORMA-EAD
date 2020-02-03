@@ -15,7 +15,7 @@
   </a>
   
   <a href="https://github.com/ofelipegabriel321/PROJETO-BD/stargazers">
-    <img alt="Stargazers" src="https://img.shields.io/github/stars/ofelipegabriel321/PROJETO-BD?style=social">
+    <img alt="Stargazers" src="https://img.shields.io/github/stars/ofelipegabriel321/PROJETO-PLATAFORMA-EAD?style=social">
   </a>
 
 </p>
