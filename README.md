@@ -41,7 +41,7 @@ O Projeto Plataforma EAD é um conjunto de comandos SQL que auxilia redes de Ens
 
 ## Installation
 
-1. Faça o [download do projeto em ZIP](https://github.com/ofelipegabriel321/PROJETO-BD/archive/master.zip) ou clone o projeto pelo bash com o comando `$ git clone https://github.com/ofelipegabriel321/PROJETO-BD.git`.
+1. Faça o [download do projeto em ZIP](https://github.com/ofelipegabriel321/PROJETO-PLATAFORMA-EAD/archive/master.zip) ou clone o projeto pelo bash com o comando `$ git clone https://github.com/ofelipegabriel321/PROJETO-PLATAFORMA-EAD.git`.
 2. Para a instalação de toda a estrutura do banco de dados existem duas opções:
    1. Executar toda parte do arquivo único [main.sql](main.sql) até antes da parte de execuções.
    2. Executar, na seguinte ordem, os aquivos [tables_creation.sql](tables_creation.sql), [auxiliary_functions.sql](auxiliary_functions.sql), [main_functions.sql](main_functions.sql), [user_functions.sql](user_functions.sql), [trigger_functions.sql](trigger_functions.sql), [triggers.sql](triggers.sql) e [groups.sql](groups.sql).
